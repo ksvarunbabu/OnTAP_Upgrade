@@ -1,0 +1,129 @@
+Write-Host "####################################################################"
+Write-Host "You will now be able to Push the Codes and perform the Code Upgrades" -ForegroundColor Red -BackgroundColor Yellow
+Write-Host "####################################################################"
+$User = Read-host -Prompt "Input the User Name: "
+$cred = Get-Credential $User -ErrorAction Stop 
+$Clusters = Get-Content -Path \\FileServer\Code_Upgrade\NetApp\NetApp_Nodes.txt
+write-host "-----------------------------------------------------------------------------"
+Write-Host "1. Download Image" -BackgroundColor DarkCyan -ForegroundColor Cyan
+Write-Host "2. Upgrade Check" -BackgroundColor DarkCyan -ForegroundColor Cyan
+Write-Host "3. Status" -BackgroundColor DarkCyan -ForegroundColor Cyan
+Write-Host "4. Upgrade" -BackgroundColor DarkCyan -ForegroundColor Cyan
+Write-Host "5. Exit" -BackgroundColor DarkCyan -ForegroundColor Cyan
+write-host "-----------------------------------------------------------------------------"
+    function Option($download,$upgrade_check,$status,$upgrade,$exit)
+        {
+
+            "1:$download; 2:$upgrade_check; 3:$status ; 4:$upgrade ; 5:$exit "
+
+        }
+    $output = Read-Host Option
+
+    do{
+    If ($output -eq 1)
+        {
+            Write-Host "####################################################################"
+            Write-host "You will be downloading the code on your NetApp Cluster $cluster "
+            Write-Host "####################################################################"
+            foreach ($cluster in $clusters)
+            {
+                Connect-NcController -Name $cluster -Credential $cred
+                Write-Host "You download is starting now"
+                Start-NcClusterImagePackageDownload -PackageUrl http://HTTPServer/netapp_upgrade/95P8_q_nodar_image.tgz
+                Write-Host "Select 3 for Download Status"
+            }
+
+            Write-Host "Select one of the following"
+            write-host "-----------------------------------------------------------------------------"
+            Write-Host "1. Download" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "2. Upgrade Check" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "3. Status" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "4. Upgrade" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "5. Exit" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            write-host "-----------------------------------------------------------------------------"
+            $output = Read-Host Option
+            
+        
+        } elseif($output -eq 2) {
+        
+            Write-Host "####################################################################" 
+            Write-Host "####################################################################"
+                       
+            foreach ($cluster in $clusters)
+            {
+                Write-Host "YOU WILL NOW PERFORM UPGRADE ON $cluster"
+                Write-Host "####################################################################"
+                Connect-NcController -Name $cluster -Credential $cred
+                Write-Host "####################################################################"
+                Write-Host "Available Package to Update"
+                Write-Host "####################################################################"
+                Get-NcCluster |select ClusterName,NcController |Format-Table
+                Write-Host "The Code Upgrade will perform Validations and "
+                Start-NcClusterImageUpdate -PackageVersion 9.5P8 -StabilizeMinutes 8 -EstimateOnly |select NcController,NduPhase,PhaseComments |format-table -AutoSize -Wrap
+                Write-Host "Please complete the manual validations"
+                Write-Host "Select 3 for Download Status"
+            }
+            
+            
+            Write-Host "Select one of the following"
+            write-host "-----------------------------------------------------------------------------"
+            Write-Host "1. Download" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "2. Upgrade Check" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "3. Status" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "4. Upgrade" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "5. Exit" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            write-host "-----------------------------------------------------------------------------"
+            $output = Read-Host Option
+            
+
+        } elseif($output -eq 3){
+    
+            Write-Host "Current Status of Package Download"
+            foreach ($cluster in $clusters)
+            {
+                Connect-NcController -Name $cluster -Credential $cred
+                Write-Host "Current Status of your Download / Upgrade on $cluster"
+                Get-NcClusterImageDownload |Select ProgressDetails,FailureReason,NcController |format-table -AutoSize -Wrap
+                Write-Host "Current Image Update Status"
+                Get-NcClusterImageUpdateProgress |Select NcController,Duration,NduPhase,PhaseComments,PhaseStatus |Format-Table -AutoSize -Wrap
+                Get-NcClusterImageUpdateProgressOverview |select NcController,CompletedNodeCount,NduNodeUpdateList,NodeEstimatedDuration |Format-Table -Wrap -AutoSize
+            }
+            
+            Write-Host "Select one of the following"
+            write-host "-----------------------------------------------------------------------------"
+            Write-Host "1. Download" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "2. Upgrade Check" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "3. Status" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "4. Upgrade" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "5. Exit" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            write-host "-----------------------------------------------------------------------------"
+            $output = Read-Host Option
+
+        } elseif($output -eq 5) {
+        
+            Exit
+        }elseif($output -eq 4){
+
+            Write-Host "Perform this Step only when you have completed the manual validation" -ForegroundColor DarkRed -BackgroundColor Red
+            Write-Host "The Upgrade will not be automated to all the nodes specified in file NetApp_Nodes.txt" -ForegroundColor DarkRed -BackgroundColor Red
+            $NetApp_Cluster = Read-Host "Enter the NetApp Cluster for Upgrade: "
+            Connect-NcController -Name $NetApp_Cluster -Credential admin
+            Start-NcClusterImageUpdate -PackageVersion 9.5P8 -StabilizeMinutes 15 -IgnoreValidationWarning
+
+            Write-Host "Select one of the following"
+            write-host "-----------------------------------------------------------------------------"
+            Write-Host "1. Download" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "2. Upgrade Check" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "3. Status" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "4. Upgrade" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            Write-Host "5. Exit" -BackgroundColor DarkCyan -ForegroundColor Cyan
+            write-host "-----------------------------------------------------------------------------"
+            $output = Read-Host Option
+        
+        }else {
+
+        Write-Host "You selected incorrect option. Exiting now"
+        exit
+    
+        }
+        }until ($output -eq 5)
